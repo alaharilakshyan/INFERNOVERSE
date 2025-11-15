@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMemory } from '../../context/MemoryContext'; // Fixed path
-import { useNotification } from '../../context/NotificationContext'; // Fixed path
+// Correct import
+import { useMemories } from '../../context/MemoryContext';
+import { useNotification } from '../../context/NotificationContext';
 import {
   Card,
   CardMedia,
@@ -29,27 +30,26 @@ const StyledCard = styled(Card)(({ theme }) => ({
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
-  transition: 'transform 0.2s, box-shadow 0.2s',
+  borderRadius: theme.shape.borderRadius * 1.25,
+  overflow: 'hidden',
+  transition: 'transform 0.25s, box-shadow 0.25s',
   '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: theme.shadows[8],
+    transform: 'translateY(-6px)',
+    boxShadow: theme.shadows[4],
   },
 }));
 
-const MemoryCard = ({ memory, onDelete, onEdit }) => {
+const MemoryCard = ({ memory, onDelete }) => {
   // State and hooks at the top
   const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
   
-  // Context hooks with optional chaining
-  const { toggleFavorite = () => {}, favorites = [] } = useMemory() || {};
+  // Correctly get the toggle function from the context
+  const { toggleFavorite } = useMemories();
   const { showNotification = () => {} } = useNotification() || {};
 
-  // Memoized values
-  const isFavorite = useMemo(() => {
-    if (!memory?._id || !Array.isArray(favorites)) return false;
-    return favorites.some(fav => fav?._id === memory._id);
-  }, [favorites, memory?._id]);
+  // The favorite status comes directly from the memory prop.
+  const isFavorite = memory?.isFavorite || false;
 
   // Event handlers
   const handleFavoriteClick = useCallback((e) => {
@@ -57,12 +57,13 @@ const MemoryCard = ({ memory, onDelete, onEdit }) => {
     try {
       if (memory?._id) {
         toggleFavorite(memory._id);
+        showNotification(isFavorite ? 'Removed from favorites' : 'Added to favorites', 'success');
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
       showNotification('Failed to update favorite', 'error');
     }
-  }, [memory?._id, toggleFavorite, showNotification]);
+  }, [memory?._id, isFavorite, toggleFavorite, showNotification]);
 
   const handleCardClick = useCallback(() => {
     if (memory?._id) {
@@ -82,10 +83,10 @@ const MemoryCard = ({ memory, onDelete, onEdit }) => {
   const handleEdit = useCallback((e) => {
     e.stopPropagation();
     closeOptionsMenu();
-    if (memory && onEdit) {
-      onEdit(memory);
+    if (memory?._id) {
+      navigate(`/memories/${memory._id}/edit`);
     }
-  }, [memory, onEdit, closeOptionsMenu]);
+  }, [memory?._id, navigate, closeOptionsMenu]);
 
   const handleDelete = useCallback((e) => {
     e.stopPropagation();
@@ -111,22 +112,57 @@ const MemoryCard = ({ memory, onDelete, onEdit }) => {
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
       style={{ height: '100%' }}
     >
-      <Card>
-        {/* Card content here */}
+      <StyledCard onClick={handleCardClick}>
+        {imageUrl ? (
+          <CardMedia component="img" image={imageUrl} alt={title} sx={{ height: 180, objectFit: 'cover' }} />
+        ) : (
+          <Box sx={(theme) => ({ height: 180, background: theme.palette.secondary.gradient })} />
+        )}
+        <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 1 }}>
+          <IconButton
+            component={motion.button}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleFavoriteClick}
+            aria-label="toggle favorite"
+            sx={{ bgcolor: 'background.paper', boxShadow: 1 }}
+          >
+            {isFavorite ? <Favorite sx={{ color: 'error.main' }} /> : <FavoriteBorder sx={{ color: 'text.primary' }} />}
+          </IconButton>
+        </Box>
         <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6">{title}</Typography>
-            <IconButton onClick={handleFavoriteClick}>
-              {isFavorite ? <Favorite color="error" /> : <FavoriteBorder />}
-            </IconButton>
-          </Box>
-          {/* Rest of your card content */}
+          <Typography variant="h6" noWrap>{title}</Typography>
+          {description && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }} noWrap>
+              {description}
+            </Typography>
+          )}
+          {Array.isArray(tags) && tags.length > 0 && (
+            <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              {tags.slice(0, 3).map((tag) => (
+                <Chip key={tag} label={tag} size="small" />
+              ))}
+            </Box>
+          )}
         </CardContent>
-      </Card>
+        <CardActions sx={{ mt: 'auto', justifyContent: 'space-between', px: 2 }}>
+          <Typography variant="caption" color="text.secondary">
+            {createdAt ? format(new Date(createdAt), 'MMM d, yyyy') : ''}
+          </Typography>
+          <Box>
+            <IconButton size="small" onClick={openOptionsMenu}>
+              <MoreVert />
+            </IconButton>
+            <Menu anchorEl={anchorEl} open={openMenu} onClose={closeOptionsMenu}>
+              <MenuItem onClick={handleEdit}><Edit fontSize="small" sx={{ mr: 1 }} /> Edit</MenuItem>
+              <MenuItem onClick={handleDelete}><Delete fontSize="small" sx={{ mr: 1 }} /> Delete</MenuItem>
+            </Menu>
+          </Box>
+        </CardActions>
+      </StyledCard>
     </motion.div>
   );
 };

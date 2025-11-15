@@ -107,26 +107,6 @@ const Navbar = () => {
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton
-            component={Link}
-            to="/upload"
-            color="primary"
-            sx={{
-              backgroundColor: 'rgba(67, 97, 238, 0.1)',
-              '&:hover': {
-                backgroundColor: 'rgba(67, 97, 238, 0.2)',
-              },
-            }}
-          >
-            <Add />
-          </IconButton>
-
-          <IconButton color="inherit">
-            <Badge badgeContent={notifications.length} color="error">
-              <Notifications />
-            </Badge>
-          </IconButton>
-
           <IconButton onClick={handleMenuOpen} sx={{ p: 0, ml: 1 }}>
             <Avatar
               src={currentUser?.photoURL}

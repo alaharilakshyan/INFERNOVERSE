@@ -15,6 +15,8 @@ import LandingPage from './pages/LandingPage/LandingPage';
 import Profile from './pages/Profile/Profile';
 import Favorites from './pages/Favorites/Favorites';
 import MemoryUpload from './components/memories/MemoryUpload';
+import MemoryDetail from './pages/MemoryDetail/MemoryDetail';
+import MemoryEditPage from './pages/MemoryEdit/MemoryEditPage';
 import Tour from './components/tour/Tour';
 
 const PrivateRoute = ({ children }) => {
@@ -75,14 +77,30 @@ function App() {
                   </PrivateRoute>
                 }
               />
+
+              <Route
+                path="/memories/:memoryId"
+                element={
+                  <PrivateRoute>
+                    <MemoryDetail />
+                  </PrivateRoute>
+                }
+              />
+
+              <Route
+                path="/memories/:memoryId/edit"
+                element={
+                  <PrivateRoute>
+                    <MemoryEditPage />
+                  </PrivateRoute>
+                }
+              />
             </Routes>
 
             <Tour />
           </TourProvider>
 
-        </MemoryProvider>
-        {/* End MemoryProvider */}
-
+        </MemoryProvider> 
       </NotificationProvider>
     </AuthProvider>
   );
