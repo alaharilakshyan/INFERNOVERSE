@@ -101,10 +101,7 @@ const MemoryGrid = ({
         {memories.map((memory) => (
           <Grid 
             key={memory?._id || memory?.id || Math.random().toString(36).substr(2, 9)}
-            xs={12}
-            sm={6}
-            md={4}
-            item
+            size={{ xs: 12, sm: 6, md: 4 }}
           >
             <motion.div 
               variants={item}

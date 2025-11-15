@@ -1,5 +1,7 @@
 // src/components/memories/MemoryUpload.js
 import React, { useState } from 'react';
+import { useMemories } from '../../context/MemoryContext';
+import { createMemory } from '../../services/memoryService';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,6 +15,7 @@ import {
   CircularProgress,
   Chip,
   IconButton,
+  LinearProgress,
 } from '@mui/material';
 
 import {
@@ -27,26 +30,28 @@ import { motion } from 'framer-motion';
 import { styled } from '@mui/material/styles';
 
 // ---- Leaflet Map Imports ----
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import * as L from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // ============================
 //   Map Location Picker
 // ============================
 const LocationPicker = ({ position, onPositionChange }) => {
-  useMapEvents({
+  L.useMapEvents({
     click(e) {
       onPositionChange(e.latlng);
     },
   });
 
-  return position ? <Marker position={position} /> : null;
+  return position ? <L.Marker position={position} /> : null;
 };
 
 // ============================
 //   Styled Dropzone Container
 // ============================
-const StyledPaper = styled(Paper)(({ theme, isDragActive }) => ({
+const StyledPaper = styled(Paper, {
+  shouldForwardProp: (prop) => prop !== 'isDragActive'
+})(({ theme, isDragActive }) => ({
   border: `2px dashed ${
     isDragActive ? theme.palette.primary.main : theme.palette.divider
   }`,
@@ -70,6 +75,7 @@ const StyledPaper = styled(Paper)(({ theme, isDragActive }) => ({
 // ============================
 const MemoryUpload = () => {
   const navigate = useNavigate();
+  const { addMemory } = useMemories();
 
   // Upload states
   const [file, setFile] = useState(null);
@@ -87,6 +93,7 @@ const MemoryUpload = () => {
   const [position, setPosition] = useState(null);
 
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Dropzone config
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -125,38 +132,37 @@ const MemoryUpload = () => {
     }));
   };
 
-  // Submit handler (mock)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) return;
 
     setIsUploading(true);
+    setUploadProgress(0);
 
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('file', file);
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('description', formData.description);
+      const payload = {
+        file,
+        title: formData.title,
+        description: formData.description,
+        tags: formData.tags.join(','),
+        lat: position?.lat,
+        lng: position?.lng,
+      };
 
-      if (position) {
-        formDataToSend.append('lat', position.lat);
-        formDataToSend.append('lng', position.lng);
-      }
+      // The `createMemory` service would need to be updated to accept
+      // an `onUploadProgress` callback, likely using axios.
+      const onUploadProgress = (progressEvent) => {
+        const percentCompleted = Math.round(
+          (progressEvent.loaded * 100) / progressEvent.total
+        );
+        setUploadProgress(percentCompleted);
+      };
 
-      formData.tags.forEach((tag) =>
-        formDataToSend.append('tags', tag)
-      );
-
-      // API CALL HERE:
-      // await api.post('/memories/upload', formDataToSend);
-
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
+      const { data } = await createMemory(payload, onUploadProgress);
+      addMemory(data);
       navigate('/dashboard');
     } catch (error) {
       console.error('Error uploading memory:', error);
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -209,13 +215,24 @@ const MemoryUpload = () => {
             <StyledPaper {...getRootProps()} isDragActive={isDragActive}>
               <input {...getInputProps()} />
               {getFileIcon()}
-              <Typography variant="h6" gutterBottom>
-                {isDragActive
-                  ? 'Drop the file here'
-                  : file
-                  ? file.name
-                  : 'Drag & drop a file here, or click to select'}
-              </Typography>
+              {isUploading ? (
+                <Box sx={{ width: '100%', px: 2 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Uploading...
+                  </Typography>
+                  <LinearProgress variant="determinate" value={uploadProgress} />
+                  <Typography variant="body2" sx={{ mt: 1 }}>{`${uploadProgress}%`}</Typography>
+                </Box>
+              ) : (
+                <Typography variant="h6" gutterBottom>
+                  {isDragActive
+                    ? 'Drop the file here'
+                    : file
+                    ? file.name
+                    : 'Drag & drop a file here, or click to select'}
+                </Typography>
+              )}
+              
 
               <Typography variant="body2" color="text.secondary">
                 Supports Images + Videos
@@ -308,13 +325,16 @@ const MemoryUpload = () => {
 
           {/* MAP SECTION */}
           <Box sx={{ height: '300px', my: 3 }}>
-            <MapContainer
+            <L.MapContainer
               center={[20, 78]}
               zoom={3}
               style={{ height: '100%', width: '100%' }}
-              onClick={(e) => setPosition(e.latlng)}
+              onClick={(e) => {
+                e.originalEvent.stopPropagation();
+                setPosition(e.latlng);
+              }}
             >
-              <TileLayer
+              <L.TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution="&copy; OpenStreetMap contributors"
               />
@@ -322,7 +342,7 @@ const MemoryUpload = () => {
                 position={position}
                 onPositionChange={setPosition}
               />
-            </MapContainer>
+            </L.MapContainer>
           </Box>
 
           {/* Hidden Inputs */}

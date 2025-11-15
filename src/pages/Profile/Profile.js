@@ -11,6 +11,8 @@ import {
   Tabs,
   Tab,
   InputAdornment,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import { Email, Person, Save, Lock } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
@@ -33,6 +35,7 @@ const Profile = () => {
     newPassword: '',
     confirmPassword: '',
   });
+  const [settings, setSettings] = useState({ darkMode: false, emailNotifications: true });
   const [avatar, setAvatar] = useState(null);
   const [preview, setPreview] = useState('');
 
@@ -153,6 +156,7 @@ const Profile = () => {
           >
             <Tab label="Profile" icon={<Person />} iconPosition="start" />
             <Tab label="Security" icon={<Lock />} iconPosition="start" />
+            <Tab label="Settings" />
           </Tabs>
 
           <form onSubmit={handleSubmit}>
@@ -190,7 +194,7 @@ const Profile = () => {
                   }}
                 />
               </Box>
-            ) : (
+            ) : activeTab === 1 ? (
               <Box>
                 <TextField
                   fullWidth
@@ -224,6 +228,36 @@ const Profile = () => {
                       ? "Passwords don't match"
                       : ''
                   }
+                />
+              </Box>
+            ) : (
+              <Box>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings.darkMode}
+                      onChange={(e) => {
+                        const next = e.target.checked;
+                        setSettings(prev => ({ ...prev, darkMode: next }));
+                        const mode = next ? 'dark' : 'light';
+                        window.dispatchEvent(new CustomEvent('themeModeChange', { detail: { mode } }));
+                      }}
+                    />
+                  }
+                  label="Enable Dark Mode"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings.emailNotifications}
+                      onChange={(e) => {
+                        const next = e.target.checked;
+                        setSettings(prev => ({ ...prev, emailNotifications: next }));
+                        localStorage.setItem('emailNotifications', String(next));
+                      }}
+                    />
+                  }
+                  label="Email Notifications"
                 />
               </Box>
             )}

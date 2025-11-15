@@ -1,81 +1,63 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useState, useContext } from 'react';
 
+// 1. Create the context
 const MemoryContext = createContext();
 
-export const useMemory = () => {
-  const context = useContext(MemoryContext);
-  if (!context) {
-    throw new Error('useMemory must be used within a MemoryProvider');
-  }
-  return context;
+// 2. Create a custom hook for easy consumption
+export const useMemories = () => {
+  return useContext(MemoryContext);
 };
 
+// 3. Create the Provider component
 export const MemoryProvider = ({ children }) => {
-  const [memories, setMemories] = useState([]);
-  const [favorites, setFavorites] = useState([]);
+  // Initial state for memories. In a real app, this would come from an API.
+  const [memories, setMemories] = useState([
+    // Mock data for demonstration, using _id
+    { _id: '1', title: 'Trip to the Mountains', description: 'A beautiful view from the top.', isFavorite: false },
+    { _id: '2', title: 'Beach Day', description: 'Fun in the sun and sand.', isFavorite: true },
+    { _id: '3', title: 'City Exploration', description: 'Discovering hidden gems in the city.', isFavorite: false },
+  ]);
+
+  // Toggle the favorite status of a memory
+  const toggleFavorite = (_id) => {
+    setMemories(memories.map(memory =>
+      memory._id === _id ? { ...memory, isFavorite: !memory.isFavorite } : memory
+    ));
+  };
+
+  // Delete a memory from the list
+  const deleteMemory = (_id) => {
+    setMemories(memories.filter(memory => memory._id !== _id));
+  };
+
+  // Update a memory's title and description
+  const updateMemory = (_id, updatedMemory) => {
+    setMemories(memories.map(memory =>
+      memory._id === _id ? { ...memory, ...updatedMemory } : memory
+    ));
+  };
+
+  // Add a new memory to the list
+  const addMemory = (newMemory) => {
+    const memoryWithId = { ...newMemory, _id: Date.now().toString(), isFavorite: false };
+    setMemories([memoryWithId, ...memories]);
+  };
+
+  // Derived state for favorite memories
+  const favoriteMemories = React.useMemo(() => memories.filter(m => m.isFavorite), [memories]);
+
+  // In a real app, this would be true while fetching from an API
   const [loading, setLoading] = useState(false);
 
-  // Safe toggle favorite function
-  const toggleFavorite = useCallback((memoryId) => {
-    if (!memoryId) {
-      console.error('No memory ID provided for toggleFavorite');
-      return;
-    }
-    
-    setFavorites(prev => {
-      const isCurrentlyFavorite = prev.includes(memoryId);
-      if (isCurrentlyFavorite) {
-        return prev.filter(id => id !== memoryId);
-      } else {
-        return [...prev, memoryId];
-      }
-    });
-  }, []);
-
-  // Safe memory operations
-  const addMemory = useCallback((memory) => {
-    if (!memory) {
-      console.error('No memory provided for addMemory');
-      return;
-    }
-    const newMemory = {
-      ...memory,
-      _id: memory._id || `memory-${Date.now()}`,
-      createdAt: memory.createdAt || new Date()
-    };
-    setMemories(prev => [...prev, newMemory]);
-  }, []);
-
-  const updateMemory = useCallback((id, updatedMemory) => {
-    if (!id) {
-      console.error('No ID provided for updateMemory');
-      return;
-    }
-    setMemories(prev => 
-      prev.map(memory => 
-        memory._id === id ? { ...memory, ...updatedMemory } : memory
-      )
-    );
-  }, []);
-
-  const deleteMemory = useCallback((id) => {
-    if (!id) {
-      console.error('No ID provided for deleteMemory');
-      return;
-    }
-    setMemories(prev => prev.filter(memory => memory._id !== id));
-    // Also remove from favorites if it was favorited
-    setFavorites(prev => prev.filter(favId => favId !== id));
-  }, []);
-
+  // The value that will be supplied to any consuming components
   const value = {
     memories,
-    favorites,
+    favoriteMemories,
     loading,
     toggleFavorite,
-    addMemory,
+    deleteMemory,
     updateMemory,
-    deleteMemory
+    addMemory,
   };
 
   return (

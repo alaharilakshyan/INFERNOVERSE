@@ -10,11 +10,7 @@ export const createMemory = (data) => {
   Object.keys(data).forEach(key => {
     formData.append(key, data[key]);
   });
-  return api.post('/memories', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  return api.post('/memories', formData);
 };
 
 export const updateMemory = (id, data) => api.put(`/memories/${id}`, data);

@@ -1,13 +1,10 @@
 // src/services/api.js
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = (process.env.REACT_APP_API_URL?.trim()) || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api');
 
 const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Add a request interceptor to add the auth token to requests
@@ -16,6 +13,11 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    } else {
+      config.headers['Content-Type'] = 'application/json';
     }
     return config;
   },

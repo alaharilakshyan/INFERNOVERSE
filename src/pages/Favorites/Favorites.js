@@ -1,13 +1,29 @@
 // src/pages/Favorites/Favorites.js
 import React from 'react';
-import { Container, Typography, Box, ToggleButton, ToggleButtonGroup } from '@mui/material';
-import { useMemory } from '../../context/MemoryContext';
+import { 
+  Container,
+  Typography, 
+  Box, 
+  ToggleButton, 
+  ToggleButtonGroup,
+  List,
+  ListItem,
+  ListItemAvatar,
+  Avatar,
+  ListItemText,
+  IconButton
+} from '@mui/material';
+import { useMemories } from '../../context/MemoryContext';
 import MemoryGrid from '../../components/memories/MemoryGrid';
-import { ViewList, GridView } from '@mui/icons-material';
+import { ViewList, GridView, Delete } from '@mui/icons-material';
 
 const Favorites = () => {
-  const { favorites, loading, toggleFavorite } = useMemory();
+  const { favoriteMemories, loading, toggleFavorite } = useMemories();
   const [view, setView] = React.useState('grid');
+  const favoritesList = React.useMemo(
+    () => favoriteMemories.slice().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)),
+    [favoriteMemories]
+  );
 
   const handleViewChange = (event, newView) => {
     if (newView !== null) {
@@ -34,8 +50,8 @@ const Favorites = () => {
             Favorite Memories
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            {favorites.length
-              ? `You have ${favorites.length} favorite memories`
+            {favoriteMemories.length
+              ? `You have ${favoriteMemories.length} favorite memories`
               : 'No favorites yet. Add some memories to your favorites!'}
           </Typography>
         </Box>
@@ -58,18 +74,36 @@ const Favorites = () => {
 
       {view === 'grid' ? (
         <MemoryGrid 
-          memories={favorites} 
+          memories={favoritesList} 
           loading={loading}
           onDelete={handleRemoveFavorite}
           emptyMessage="You haven't added any memories to favorites yet."
         />
       ) : (
-        <Box>
-          {/* List view implementation would go here */}
-          <Typography color="text.secondary">
-            List view coming soon!
-          </Typography>
-        </Box>
+        <List>
+          {favoritesList.map((memory) => (
+            <ListItem
+              key={memory._id}
+              secondaryAction={
+                <IconButton edge="end" aria-label="delete" onClick={() => handleRemoveFavorite(memory._id)}>
+                  <Delete />
+                </IconButton>
+              }
+              sx={{
+                bgcolor: 'background.paper',
+                mb: 1,
+                borderRadius: 1,
+              }}
+            >
+              <ListItemAvatar>
+                <Avatar variant="rounded" src={memory.imageUrl} alt={memory.title}>
+                  {/* Fallback icon if no image */}
+                </Avatar>
+              </ListItemAvatar>
+              <ListItemText primary={memory.title} secondary={memory.description} />
+            </ListItem>
+          ))}
+        </List>
       )}
     </Container>
   );

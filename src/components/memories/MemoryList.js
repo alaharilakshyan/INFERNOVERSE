@@ -47,7 +47,7 @@ const MemoryList = ({ memories, onDelete, onEdit, loading }) => {
     >
       <Grid container spacing={2} sx={{ p: 2 }}>
         {memories.map((memory) => (
-          <Grid key={memory._id || memory.id} xs={12} sm={4} item>
+          <Grid key={memory._id || memory.id} size={{ xs: 12, sm: 4 }}>
             <motion.div variants={item}>
               <ErrorBoundary fallback={<div>Error loading memory</div>}>
                 <Suspense fallback={<div>Loading...</div>}>
