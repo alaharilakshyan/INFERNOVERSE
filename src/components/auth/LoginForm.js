@@ -1,94 +1,128 @@
 // src/components/auth/LoginForm.js
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
+import {
+  TextField,
+  Button,
+  Box,
+  Typography,
+  Link,
+  InputAdornment,
+  IconButton,
+  Paper
+} from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
-import { TextField, Button, Box, Typography, Container, Link as MuiLink } from '@mui/material';
+
+const validationSchema = Yup.object({
+  email: Yup.string()
+    .email('Enter a valid email')
+    .required('Email is required'),
+  password: Yup.string()
+    .min(6, 'Password must be at least 6 characters')
+    .required('Password is required'),
+});
 
 const LoginForm = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-  const [error, setError] = useState('');
-  const { login } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
+  const { login, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || '/dashboard';
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await login(formData.email, formData.password);
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
-    }
-  };
+  const formik = useFormik({
+    initialValues: {
+      email: '',
+      password: '',
+    },
+    validationSchema: validationSchema,
+    onSubmit: async (values, { setSubmitting, setFieldError }) => {
+      try {
+        await login(values.email, values.password);
+        navigate(from, { replace: true });
+      } catch (error) {
+        setFieldError('submit', error.message || 'Login failed. Please check your credentials.');
+      } finally {
+        setSubmitting(false);
+      }
+    },
+  });
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Typography component="h1" variant="h5">
-          Sign in to Re:Link
-        </Typography>
-        {error && (
-          <Typography color="error" sx={{ mt: 2 }}>
-            {error}
+    <Paper elevation={3} sx={{ p: 4, width: '100%', maxWidth: 500 }}>
+      <form onSubmit={formik.handleSubmit}>
+        <TextField
+          fullWidth
+          id="email"
+          name="email"
+          label="Email"
+          value={formik.values.email}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          error={formik.touched.email && Boolean(formik.errors.email)}
+          helperText={formik.touched.email && formik.errors.email}
+          margin="normal"
+          variant="outlined"
+        />
+
+        <TextField
+          fullWidth
+          id="password"
+          name="password"
+          label="Password"
+          type={showPassword ? 'text' : 'password'}
+          value={formik.values.password}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          error={formik.touched.password && Boolean(formik.errors.password)}
+          helperText={formik.touched.password && formik.errors.password}
+          margin="normal"
+          variant="outlined"
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="toggle password visibility"
+                  onClick={() => setShowPassword(!showPassword)}
+                  edge="end"
+                >
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+
+        {formik.errors.submit && (
+          <Typography color="error" gutterBottom>
+            {formik.errors.submit}
           </Typography>
         )}
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            id="email"
-            label="Email Address"
-            name="email"
-            autoComplete="email"
-            autoFocus
-            value={formData.email}
-            onChange={handleChange}
-          />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            name="password"
-            label="Password"
-            type="password"
-            id="password"
-            autoComplete="current-password"
-            value={formData.password}
-            onChange={handleChange}
-          />
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{ mt: 3, mb: 2 }}
-          >
-            Sign In
-          </Button>
-          <Box sx={{ textAlign: 'center' }}>
-            <MuiLink component={Link} to="/register" variant="body2">
-              {"Don't have an account? Sign Up"}
-            </MuiLink>
-          </Box>
+
+        <Button
+          type="submit"
+          fullWidth
+          variant="contained"
+          color="primary"
+          disabled={loading || formik.isSubmitting}
+          size="large"
+          sx={{ mt: 2, mb: 2 }}
+        >
+          {loading ? 'Signing in...' : 'Sign In'}
+        </Button>
+
+        <Box mt={2} textAlign="center">
+          <Typography variant="body2" color="textSecondary">
+            Don't have an account?{' '}
+            <Link component={RouterLink} to="/register" color="primary">
+              Sign up
+            </Link>
+          </Typography>
         </Box>
-      </Box>
-    </Container>
+      </form>
+    </Paper>
   );
 };
 

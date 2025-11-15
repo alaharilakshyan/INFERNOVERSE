@@ -1,8 +1,7 @@
-// src/components/memories/MemoryCard.js
 import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMemory } from '../../context/MemoryContext';
-import { useNotification } from '../../context/NotificationContext';
+import { useMemory } from '../../context/MemoryContext'; // Fixed path
+import { useNotification } from '../../context/NotificationContext'; // Fixed path
 import {
   Card,
   CardMedia,
@@ -14,14 +13,14 @@ import {
   CardActions,
   Menu,
   MenuItem,
-  styled,
+  styled
 } from '@mui/material';
 import {
   Favorite,
   FavoriteBorder,
   MoreVert,
   Edit,
-  Delete,
+  Delete
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -30,10 +29,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
-  transition: 'transform 0.25s ease, box-shadow 0.25s ease',
-  borderRadius: 14,
-  overflow: 'hidden',
-  cursor: 'pointer',
+  transition: 'transform 0.2s, box-shadow 0.2s',
   '&:hover': {
     transform: 'translateY(-4px)',
     boxShadow: theme.shadows[8],
@@ -41,78 +37,96 @@ const StyledCard = styled(Card)(({ theme }) => ({
 }));
 
 const MemoryCard = ({ memory, onDelete, onEdit }) => {
-  // Hooks must be called at the top level
+  // State and hooks at the top
   const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
-  const { toggleFavorite, favorites } = useMemory();
-  const { showNotification } = useNotification();
+  
+  // Context hooks with optional chaining
+  const { toggleFavorite = () => {}, favorites = [] } = useMemory() || {};
+  const { showNotification = () => {} } = useNotification() || {};
 
-  // Memoize the isFavorite check
+  // Memoized values
   const isFavorite = useMemo(() => {
-    if (!memory?._id) return false;
-    return favorites?.some((fav) => fav?._id === memory._id) || false;
+    if (!memory?._id || !Array.isArray(favorites)) return false;
+    return favorites.some(fav => fav?._id === memory._id);
   }, [favorites, memory?._id]);
 
-  // Handle favorite click
+  // Event handlers
   const handleFavoriteClick = useCallback((e) => {
     e.stopPropagation();
     try {
       if (memory?._id) {
         toggleFavorite(memory._id);
       }
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
       showNotification('Failed to update favorite', 'error');
     }
   }, [memory?._id, toggleFavorite, showNotification]);
 
-  // Handle card click
   const handleCardClick = useCallback(() => {
     if (memory?._id) {
       navigate(`/memories/${memory._id}`);
     }
   }, [memory?._id, navigate]);
 
-  // Other handlers
-  const openOptionsMenu = (e) => {
+  const openOptionsMenu = useCallback((e) => {
     e.stopPropagation();
     setAnchorEl(e.currentTarget);
-  };
+  }, []);
 
-  const closeOptionsMenu = () => setAnchorEl(null);
+  const closeOptionsMenu = useCallback(() => {
+    setAnchorEl(null);
+  }, []);
 
-  const handleEdit = (e) => {
+  const handleEdit = useCallback((e) => {
     e.stopPropagation();
     closeOptionsMenu();
-    onEdit?.(memory);
-  };
+    if (memory && onEdit) {
+      onEdit(memory);
+    }
+  }, [memory, onEdit, closeOptionsMenu]);
 
-  const handleDelete = (e) => {
+  const handleDelete = useCallback((e) => {
     e.stopPropagation();
     closeOptionsMenu();
-    onDelete?.(memory?._id);
-  };
+    if (memory?._id && onDelete) {
+      onDelete(memory._id);
+    }
+  }, [memory, onDelete, closeOptionsMenu]);
 
   // Early return after all hooks
-  if (!memory || !memory._id) {
+  if (!memory) {
     return (
-      <Card sx={{ height: '100%', opacity: 0.6, p: 2 }}>
-        <Typography variant="body2">Memory unavailable</Typography>
+      <Card sx={{ height: '100%', opacity: 0.7, p: 2 }}>
+        <Typography variant="body2" color="text.secondary">
+          Memory not available
+        </Typography>
       </Card>
     );
   }
 
-  const { _id, title, description, imageUrl, tags, createdAt } = memory;
+  const { _id, title = 'Untitled', description = '', imageUrl, tags = [], createdAt } = memory;
+  const openMenu = Boolean(anchorEl);
 
   return (
     <motion.div
-      whileHover={{ scale: 1.015 }}
-      whileTap={{ scale: 0.97 }}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       style={{ height: '100%' }}
     >
-      <StyledCard onClick={handleCardClick}>
-        {/* Rest of your component */}
-      </StyledCard>
+      <Card>
+        {/* Card content here */}
+        <CardContent>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">{title}</Typography>
+            <IconButton onClick={handleFavoriteClick}>
+              {isFavorite ? <Favorite color="error" /> : <FavoriteBorder />}
+            </IconButton>
+          </Box>
+          {/* Rest of your card content */}
+        </CardContent>
+      </Card>
     </motion.div>
   );
 };

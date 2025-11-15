@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -11,11 +10,9 @@ import {
   Paper,
   Tabs,
   Tab,
-  Divider,
-  IconButton,
   InputAdornment,
 } from '@mui/material';
-import { PhotoCamera, Lock, Email, Person, Save } from '@mui/icons-material';
+import { Email, Person, Save, Lock } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { motion } from 'framer-motion';
 
@@ -38,17 +35,17 @@ const Profile = () => {
   });
   const [avatar, setAvatar] = useState(null);
   const [preview, setPreview] = useState('');
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (currentUser) {
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         username: currentUser.username || '',
         email: currentUser.email || '',
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
-      });
+      }));
       if (currentUser.avatar) {
         setPreview(`/api/uploads/${currentUser.avatar}`);
       }
@@ -61,7 +58,7 @@ const Profile = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: value,
     }));
@@ -86,14 +83,18 @@ const Profile = () => {
       formDataToSend.append('email', formData.email);
       
       if (formData.newPassword) {
+        if (formData.newPassword !== formData.confirmPassword) {
+          throw new Error("Passwords don't match");
+        }
         formDataToSend.append('currentPassword', formData.currentPassword);
         formDataToSend.append('newPassword', formData.newPassword);
       }
 
       await updateProfile(formDataToSend);
-      // Show success message or redirect
+      // Optionally show success message
     } catch (error) {
       console.error('Error updating profile:', error);
+      // Optionally show error message to user
     }
   };
 
@@ -219,7 +220,7 @@ const Profile = () => {
                   margin="normal"
                   error={formData.newPassword !== formData.confirmPassword}
                   helperText={
-                    formData.newPassword !== formData.confirmPassword
+                    formData.newPassword && formData.newPassword !== formData.confirmPassword
                       ? "Passwords don't match"
                       : ''
                   }

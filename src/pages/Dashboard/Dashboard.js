@@ -16,7 +16,6 @@ import {
 import { Add, GridView } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 
-import MemoryList from '../../components/memories/MemoryList';
 import MemoryGrid from '../../components/memories/MemoryGrid';
 
 // -----------------------
